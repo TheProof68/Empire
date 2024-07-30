@@ -1,0 +1,615 @@
+<html><head><base href="https://interactive-ai-games.com/fr/cannabis-empire-3d/"><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cannabis Empire 3D - Gestion de plantation en 3D</title>
+<style>
+body {
+    margin: 0;
+    overflow: hidden;
+    font-family: Arial, sans-serif;
+    background-color: #2c3e50;
+    color: white;
+}
+#menu, #game, #mapSelection {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+#menu, #mapSelection {
+    background-color: rgba(0,0,0,0.7);
+    z-index: 1000;
+}
+#game {
+    display: none;
+}
+h1 {
+    color: #3498db;
+    font-size: 3em;
+    margin-bottom: 30px;
+}
+button {
+    background-color: #2ecc71;
+    border: none;
+    color: white;
+    padding: 10px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+button:hover {
+    background-color: #27ae60;
+}
+#resources {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+}
+#actions {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    z-index: 100;
+}
+#shop {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 100;
+    background-color: rgba(0,0,0,0.7);
+    padding: 10px;
+    border-radius: 5px;
+}
+#cameraControls {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 100;
+}
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 20px;
+}
+.map-card {
+    background-color: rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+.map-card:hover {
+    background-color: rgba(255,255,255,0.2);
+}
+.map-card img {
+    width: 100%;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.map-card h3 {
+    margin: 0;
+    color: #3498db;
+}
+.map-card p {
+    font-size: 14px;
+    margin: 5px 0;
+}
+.locked {
+    filter: grayscale(100%);
+    opacity: 0.7;
+}
+#mapShop {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0,0,0,0.8);
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 1001;
+    display: none;
+}
+#mapShop h2 {
+    color: #3498db;
+    margin-top: 0;
+}
+#mapShop button {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+}
+#saveNotification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: rgba(46, 204, 113, 0.8);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1002;
+}
+</style>
+</head>
+<body>
+<div id="menu">
+    <h1>Cannabis Empire 3D</h1>
+    <button onclick="showMapSelection()">Jouer</button>
+    <button onclick="loadGame()">Charger la partie</button>
+</div>
+<div id="mapSelection" style="display: none;">
+    <h2>Sélectionnez une carte</h2>
+    <div class="map-grid">
+        <div class="map-card" onclick="startGame('forest')">
+            <img src="https://example.com/forest-map.jpg" alt="Carte de la forêt">
+            <h3>Forêt</h3>
+            <p>Difficulté: Facile</p>
+            <p>Débloquée</p>
+        </div>
+        <div class="map-card" onclick="startGame('desert')">
+            <img src="https://example.com/desert-map.jpg" alt="Carte du désert">
+            <h3>Désert</h3>
+            <p>Difficulté: Moyenne</p>
+            <p>Débloquée</p>
+        </div>
+        <div class="map-card locked" id="mountainMap">
+            <img src="https://example.com/mountain-map.jpg" alt="Carte de la montagne">
+            <h3>Montagne</h3>
+            <p>Difficulté: Difficile</p>
+            <p>Coût: 5000 €</p>
+        </div>
+        <div class="map-card locked" id="coastalMap">
+            <img src="https://example.com/coastal-map.jpg" alt="Carte côtière">
+            <h3>Côte</h3>
+            <p>Difficulté: Moyenne</p>
+            <p>Coût: 7500 €</p>
+        </div>
+        <div class="map-card locked" id="urbanMap">
+            <img src="https://example.com/urban-map.jpg" alt="Carte urbaine">
+            <h3>Ville</h3>
+            <p>Difficulté: Très difficile</p>
+            <p>Coût: 10000 €</p>
+        </div>
+    </div>
+    <button onclick="returnToMenu()">Retour au menu</button>
+</div>
+<div id="game">
+    <div id="resources">
+        <p>Argent: <span id="money">1000 €</span></p>
+        <p>Cannabis: <span id="cannabis">0 g</span></p>
+        <p>Slots: <span id="slots">25/25</span></p>
+    </div>
+    <div id="actions">
+        <button onclick="plantCannabis()">Planter du cannabis (100 €)</button>
+        <button onclick="harvestCannabis()">Récolter le cannabis</button>
+        <button onclick="sellCannabis()">Vendre le cannabis</button>
+        <button onclick="showMapShop()">Acheter des cartes</button>
+    </div>
+    <div id="shop">
+        <h2>Boutique</h2>
+        <button onclick="buyPlant()">Acheter une plante (200 €)</button>
+        <button onclick="buyBooster('growth')">Booster de croissance (300 €)</button>
+        <button onclick="buyBooster('quality')">Booster de qualité (500 €)</button>
+        <button onclick="buySlots()">Acheter 5 slots (1000 €)</button>
+    </div>
+    <div id="cameraControls">
+        <button onclick="rotateCameraLeft()">⬅️</button>
+        <button onclick="rotateCameraRight()">➡️</button>
+        <button onclick="moveCameraUp()">⬆️</button>
+        <button onclick="moveCameraDown()">⬇️</button>
+        <button onclick="zoomIn()">🔍+</button>
+        <button onclick="zoomOut()">🔍-</button>
+    </div>
+</div>
+
+<div id="mapShop">
+    <h2>Acheter des cartes</h2>
+    <button onclick="buyMap('mountain')">Acheter la carte Montagne (5000 €)</button>
+    <button onclick="buyMap('coastal')">Acheter la carte Côte (7500 €)</button>
+    <button onclick="buyMap('urban')">Acheter la carte Ville (10000 €)</button>
+    <button onclick="closeMapShop()">Fermer</button>
+</div>
+
+<div id="saveNotification">Partie sauvegardée</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<script>
+let scene, camera, renderer, plants = [], money = 1000, cannabis = 0;
+let growthBooster = 1, qualityBooster = 1;
+let cameraAngle = 0, cameraHeight = 5, cameraDistance = 10;
+let currentMap = '';
+let totalSlots = 25;
+let usedSlots = 0;
+let unlockedMaps = ['forest', 'desert'];
+
+function showMapSelection() {
+    document.getElementById('menu').style.display = 'none';
+    document.getElementById('mapSelection').style.display = 'flex';
+}
+
+function returnToMenu() {
+    document.getElementById('mapSelection').style.display = 'none';
+    document.getElementById('menu').style.display = 'flex';
+}
+
+function startGame(mapType) {
+    if (unlockedMaps.includes(mapType)) {
+        currentMap = mapType;
+        document.getElementById('mapSelection').style.display = 'none';
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        init();
+    } else {
+        alert("Vous devez d'abord acheter cette carte !");
+    }
+}
+
+function init() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    renderer = new THREE.WebGLRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('game').appendChild(renderer.domElement);
+
+    const light = new THREE.PointLight(0xffffff, 1, 100);
+    light.position.set(0, 10, 0);
+    scene.add(light);
+
+    createMap();
+
+    updateCameraPosition();
+
+    animate();
+    updateDisplay();
+
+    // Démarrer l'auto-sauvegarde
+    setInterval(autoSave, 60000); // Sauvegarde toutes les minutes
+}
+
+function createMap() {
+    scene.children = scene.children.filter(child => !(child instanceof THREE.Mesh && child.geometry instanceof THREE.PlaneGeometry));
+
+    const groundGeometry = new THREE.PlaneGeometry(30, 30);
+    let groundMaterial;
+
+    if (currentMap === 'forest') {
+        groundMaterial = new THREE.MeshBasicMaterial({color: 0x228B22});
+        addTrees();
+    } else if (currentMap === 'desert') {
+        groundMaterial = new THREE.MeshBasicMaterial({color: 0xD2B48C});
+        addCacti();
+    } else if (currentMap === 'mountain') {
+        groundMaterial = new THREE.MeshBasicMaterial({color: 0x808080});
+        addMountains();
+    } else if (currentMap === 'coastal') {
+        groundMaterial = new THREE.MeshBasicMaterial({color: 0xC2B280});
+        addBeach();
+    } else if (currentMap === 'urban') {
+        groundMaterial = new THREE.MeshBasicMaterial({color: 0x808080});
+        addBuildings();
+    }
+
+    const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+    ground.rotation.x = -Math.PI / 2;
+    scene.add(ground);
+}
+
+function addTrees() {
+    for (let i = 0; i < 15; i++) {
+        const treeGeometry = new THREE.ConeGeometry(0.5, 2, 32);
+        const treeMaterial = new THREE.MeshPhongMaterial({color: 0x006400});
+        const tree = new THREE.Mesh(treeGeometry, treeMaterial);
+        tree.position.set(
+            Math.random() * 28 - 14,
+            1,
+            Math.random() * 28 - 14
+        );
+        scene.add(tree);
+    }
+}
+
+function addCacti() {
+    for (let i = 0; i < 12; i++) {
+        const cactusGeometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5, 32);
+        const cactusMaterial = new THREE.MeshPhongMaterial({color: 0x2F4F4F});
+        const cactus = new THREE.Mesh(cactusGeometry, cactusMaterial);
+        cactus.position.set(
+            Math.random() * 28 - 14,
+            0.75,
+            Math.random() * 28 - 14
+        );
+        scene.add(cactus);
+    }
+}
+
+function addMountains() {
+    for (let i = 0; i < 5; i++) {
+        const mountainGeometry = new THREE.ConeGeometry(2, 4, 4);
+        const mountainMaterial = new THREE.MeshPhongMaterial({color: 0x4d4d4d});
+        const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
+        mountain.position.set(
+            Math.random() * 28 - 14,
+            2,
+            Math.random() * 28 - 14
+        );
+        scene.add(mountain);
+    }
+}
+
+function addBeach() {
+    const waterGeometry = new THREE.PlaneGeometry(30, 15);
+    const waterMaterial = new THREE.MeshBasicMaterial({color: 0x4FC3F7, transparent: true, opacity: 0.7});
+    const water = new THREE.Mesh(waterGeometry, waterMaterial);
+    water.rotation.x = -Math.PI / 2;
+    water.position.z = 7.5;
+    scene.add(water);
+}
+
+function addBuildings() {
+    for (let i = 0; i < 10; i++) {
+        const buildingGeometry = new THREE.BoxGeometry(2, Math.random() * 5 + 2, 2);
+        const buildingMaterial = new THREE.MeshPhongMaterial({color: 0xcccccc});
+        const building = new THREE.Mesh(buildingGeometry, buildingMaterial);
+        building.position.set(
+            Math.random() * 28 - 14,
+            buildingGeometry.parameters.height / 2,
+            Math.random() * 28 - 14
+        );
+        scene.add(building);
+    }
+}
+
+function createPlant() {
+    const geometry = new THREE.ConeGeometry(0.5, 1, 32);
+    const material = new THREE.MeshPhongMaterial({color: 0x00ff00});
+    const plant = new THREE.Mesh(geometry, material);
+    plant.position.y = 0.5;
+    plant.scale.set(0.1, 0.1, 0.1);
+    scene.add(plant);
+    return {mesh: plant, stage: 1, growth: 0, quality: 1};
+}
+
+function updatePlants() {
+    plants.forEach((plant, index) => {
+        plant.growth += Math.random() * 0.5 * growthBooster;
+        if (plant.growth >= 100) {
+            plant.growth = 0;
+            plant.stage = Math.min(plant.stage + 1, 4);
+        }
+        const scale = 0.1 + (plant.stage * 0.2);
+        plant.mesh.scale.set(scale, scale, scale);
+        plant.mesh.position.set(
+            ((index % 5) - 2) * 2.5,
+            0.5 * scale,
+            (Math.floor(index / 5) - 2) * 2.5
+        );
+    });
+}
+
+function animate() {
+    requestAnimationFrame(animate);
+    updatePlants();
+    renderer.render(scene, camera);
+}
+
+function plantCannabis() {
+    if (money >= 100 && usedSlots < totalSlots) {
+        money -= 100;
+        plants.push(createPlant());
+        usedSlots++;
+        updateDisplay();
+    }
+}
+
+function harvestCannabis() {
+    let harvestedAmount = 0;
+    plants = plants.filter(plant => {
+        if (plant.stage === 4) {
+            harvestedAmount += (Math.floor(Math.random() * 50) + 50) * plant.quality * qualityBooster;
+            scene.remove(plant.mesh);
+            usedSlots--;
+            return false;
+        }
+        return true;
+    });
+    cannabis += harvestedAmount;
+    updateDisplay();
+}
+
+function sellCannabis() {
+    if (cannabis > 0) {
+        let price = Math.floor(Math.random() * 5) + 10;
+        let earnings = cannabis * price;
+        money += earnings;
+        cannabis = 0;
+        updateDisplay();
+    }
+}
+
+function buyPlant() {
+    if (money >= 200 && usedSlots < totalSlots) {
+        money -= 200;
+        plants.push(createPlant());
+        usedSlots++;
+        updateDisplay();
+    }
+}
+
+function buyBooster(type) {
+    if (type === 'growth' && money >= 300) {
+        money -= 300;
+        growthBooster *= 1.2;
+        updateDisplay();
+    } else if (type === 'quality' && money >= 500) {
+        money -= 500;
+        qualityBooster *= 1.5;
+        updateDisplay();
+    }
+}
+
+function buySlots() {
+    if (money >= 1000) {
+        money -= 1000;
+        totalSlots += 5;
+        updateDisplay();
+    }
+}
+
+function updateDisplay() {
+    document.getElementById('money').textContent = money.toFixed(2) + ' €';
+    document.getElementById('cannabis').textContent = cannabis.toFixed(2) + ' g';
+    document.getElementById('slots').textContent = usedSlots + '/' + totalSlots;
+}
+
+function updateCameraPosition() {
+    camera.position.x = cameraDistance * Math.sin(cameraAngle);
+    camera.position.y = cameraHeight;
+    camera.position.z = cameraDistance * Math.cos(cameraAngle);
+    camera.lookAt(scene.position);
+}
+
+function rotateCameraLeft() {
+    cameraAngle -= Math.PI / 12;
+    updateCameraPosition();
+}
+
+function rotateCameraRight() {
+    cameraAngle += Math.PI / 12;
+    updateCameraPosition();
+}
+
+function moveCameraUp() {
+    cameraHeight = Math.min(cameraHeight + 1, 15);
+    updateCameraPosition();
+}
+
+function moveCameraDown() {
+    cameraHeight = Math.max(cameraHeight - 1, 2);
+    updateCameraPosition();
+}
+
+function zoomIn() {
+    cameraDistance = Math.max(cameraDistance - 1, 5);
+    updateCameraPosition();
+}
+
+function zoomOut() {
+    cameraDistance = Math.min(cameraDistance + 1, 20);
+    updateCameraPosition();
+}
+
+function showMapShop() {
+    document.getElementById('mapShop').style.display = 'block';
+}
+
+function closeMapShop() {
+    document.getElementById('mapShop').style.display = 'none';
+}
+
+function buyMap(mapType) {
+    let cost;
+    switch (mapType) {
+        case 'mountain':
+            cost = 5000;
+            break;
+        case 'coastal':
+            cost = 7500;
+            break;
+        case 'urban':
+            cost = 10000;
+            break;
+        default:
+            return;
+    }
+
+    if (money >= cost) {
+        money -= cost;
+        unlockedMaps.push(mapType);
+        document.getElementById(mapType + 'Map').classList.remove('locked');
+        updateDisplay();
+        alert(`Vous avez débloqué la carte ${mapType} !`);
+    } else {
+        alert("Vous n'avez pas assez d'argent pour acheter cette carte !");
+    }
+}
+
+function autoSave() {
+    const gameState = {
+        money,
+        cannabis,
+        growthBooster,
+        qualityBooster,
+        currentMap,
+        totalSlots,
+        usedSlots,
+        unlockedMaps,
+        plants: plants.map(plant => ({
+            stage: plant.stage,
+            growth: plant.growth,
+            quality: plant.quality
+        }))
+    };
+    localStorage.setItem('cannabisEmpireState', JSON.stringify(gameState));
+    showSaveNotification();
+}
+
+function loadGame() {
+    const savedState = localStorage.getItem('cannabisEmpireState');
+    if (savedState) {
+        const gameState = JSON.parse(savedState);
+        money = gameState.money;
+        cannabis = gameState.cannabis;
+        growthBooster = gameState.growthBooster;
+        qualityBooster = gameState.qualityBooster;
+        currentMap = gameState.currentMap;
+        totalSlots = gameState.totalSlots;
+        usedSlots = gameState.usedSlots;
+        unlockedMaps = gameState.unlockedMaps;
+        
+        document.getElementById('menu').style.display = 'none';
+        document.getElementById('game').style.display = 'block';
+        init();
+        
+        plants = gameState.plants.map(plantData => {
+            const plant = createPlant();
+            plant.stage = plantData.stage;
+            plant.growth = plantData.growth;
+            plant.quality = plantData.quality;
+            return plant;
+        });
+        
+        updateDisplay();
+    } else {
+        alert("Aucune sauvegarde trouvée !");
+    }
+}
+
+function showSaveNotification() {
+    const notification = document.getElementById('saveNotification');
+    notification.style.display = 'block';
+    setTimeout(() => {
+        notification.style.display = 'none';
+    }, 3000);
+}
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body></html>
